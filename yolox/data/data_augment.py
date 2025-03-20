@@ -155,6 +155,7 @@ def preproc(img, input_size, swap=(2, 0, 1)):
 
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+
     return padded_img, r
 
 
@@ -228,16 +229,31 @@ class ValTransform:
         data
     """
 
-    def __init__(self, swap=(2, 0, 1), legacy=False):
+    def __init__(self, max_labels=50, swap=(2, 0, 1), legacy=False):
         self.swap = swap
         self.legacy = legacy
+        self.max_labels = max_labels
 
     # assume input is cv2 img for now
     def __call__(self, img, res, input_size):
-        img, _ = preproc(img, input_size, self.swap)
+        img, r_ = preproc(img, input_size, self.swap)
         if self.legacy:
             img = img[::-1, :, :].copy()
             img /= 255.0
             img -= np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
             img /= np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
-        return img, np.zeros((1, 5))
+        
+        # 确保 res 不为空
+        if len(res) == 0:
+            padded_labels = np.zeros((self.max_labels, 5), dtype=np.float32)
+            return img, padded_labels
+            
+        res = res.copy()
+        res[:, :4] *= r_
+        
+        # 创建固定大小的标签数组
+        padded_labels = np.zeros((self.max_labels, 5), dtype=np.float32)
+        # 复制有效的标签数据，确保不超过 max_labels
+        padded_labels[range(len(res))[: self.max_labels]] = res[: self.max_labels]
+        
+        return img, padded_labels

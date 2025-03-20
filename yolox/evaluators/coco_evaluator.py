@@ -88,6 +88,7 @@ class COCOEvaluator:
         img_size: int,
         confthre: float,
         nmsthre: float,
+        maxDets: int,
         num_classes: int,
         testdev: bool = False,
         per_class_AP: bool = True,
@@ -112,6 +113,7 @@ class COCOEvaluator:
         self.testdev = testdev
         self.per_class_AP = per_class_AP
         self.per_class_AR = per_class_AR
+        self.maxDets = maxDets
 
     def evaluate(
         self, model, distributed=False, half=False, trt_file=None,
@@ -169,11 +171,9 @@ class COCOEvaluator:
                 outputs = model(imgs)
                 if decoder is not None:
                     outputs = decoder(outputs, dtype=outputs.type())
-
                 if is_time_record:
                     infer_end = time_synchronized()
                     inference_time += infer_end - start
-
                 outputs = postprocess(
                     outputs, self.num_classes, self.confthre, self.nmsthre
                 )
@@ -298,6 +298,7 @@ class COCOEvaluator:
                 logger.warning("Use standard COCOeval.")
 
             cocoEval = COCOeval(cocoGt, cocoDt, annType[1])
+            cocoEval.params.maxDets = [self.maxDets]
             cocoEval.evaluate()
             cocoEval.accumulate()
             redirect_string = io.StringIO()
