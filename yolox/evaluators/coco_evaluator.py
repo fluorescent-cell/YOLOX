@@ -88,7 +88,7 @@ class COCOEvaluator:
         img_size: int,
         confthre: float,
         nmsthre: float,
-        maxDets: int,
+        max_labels: int,
         num_classes: int,
         testdev: bool = False,
         per_class_AP: bool = True,
@@ -113,7 +113,7 @@ class COCOEvaluator:
         self.testdev = testdev
         self.per_class_AP = per_class_AP
         self.per_class_AR = per_class_AR
-        self.maxDets = maxDets
+        self.max_labels = max_labels
 
     def evaluate(
         self, model, distributed=False, half=False, trt_file=None,
@@ -298,7 +298,7 @@ class COCOEvaluator:
                 logger.warning("Use standard COCOeval.")
 
             cocoEval = COCOeval(cocoGt, cocoDt, annType[1])
-            cocoEval.params.maxDets = [self.maxDets]
+            cocoEval.params.maxDets = [self.max_labels]
             cocoEval.evaluate()
             cocoEval.accumulate()
             redirect_string = io.StringIO()
