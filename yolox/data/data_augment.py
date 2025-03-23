@@ -138,6 +138,13 @@ def _mirror(image, boxes, prob=0.5):
         boxes[:, 0::2] = width - boxes[:, 2::-2]
     return image, boxes
 
+def _mirror_updown(image, boxes, prob=0.5):
+    height, _, _ = image.shape
+    if random.random() < prob:
+        image = image[::-1]
+        boxes[:, 1::2] = height - boxes[:, 3::-2]
+    return image, boxes
+
 
 def preproc(img, input_size, swap=(2, 0, 1)):
     if len(img.shape) == 3:
@@ -160,9 +167,10 @@ def preproc(img, input_size, swap=(2, 0, 1)):
 
 
 class TrainTransform:
-    def __init__(self, max_labels=50, flip_prob=0.5, hsv_prob=1.0):
+    def __init__(self, max_labels=50, flip_prob=0.5, flip_prob_updown=0.0, hsv_prob=1.0):
         self.max_labels = max_labels
         self.flip_prob = flip_prob
+        self.flip_prob_updown = flip_prob_updown
         self.hsv_prob = hsv_prob
 
     def __call__(self, image, targets, input_dim):
@@ -184,6 +192,7 @@ class TrainTransform:
         if random.random() < self.hsv_prob:
             augment_hsv(image)
         image_t, boxes = _mirror(image, boxes, self.flip_prob)
+        image_t, boxes = _mirror_updown(image_t, boxes, self.flip_prob_updown)
         height, width, _ = image_t.shape
         image_t, r_ = preproc(image_t, input_dim)
         # boxes [xyxy] 2 [cx,cy,w,h]
